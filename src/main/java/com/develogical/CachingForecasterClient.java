@@ -5,16 +5,23 @@ import com.weather.Forecast;
 import com.weather.Forecaster;
 import com.weather.Region;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-public class CachingForecasterClient {
-    private final Forecaster forecaster;
+public class CachingForecasterClient implements ForecasterClient {
+    private final ForecasterClient forecaster;
+    private final int cacheLimit;
 
     Map<String, Forecast> forecastCache;
-    public CachingForecasterClient(Forecaster delegate) {
+    List<String> insertionOrder;
+
+    public CachingForecasterClient(ForecasterClient delegate, int cacheLimit) {
         this.forecaster = delegate;
-        forecastCache = new HashMap<String, Forecast>();
+        this.cacheLimit = cacheLimit;
+        this.forecastCache = new HashMap<>();
+        this.insertionOrder = new ArrayList<>();
     }
 
     public Forecast forecastFor(Region region, Day day) {
@@ -22,21 +29,28 @@ public class CachingForecasterClient {
         String key = generateKey(region,day);
         if(isInCache(key)){
             forecast = forecastCache.get(key);
-
         } else {
             forecast = forecaster.forecastFor(region, day);
+            ifSizeLimitRemoveOldest();
             forecastCache.put(key, forecast);
+            insertionOrder.add(key);
         }
         return forecast;
     }
 
-    private boolean isInCache(String key) {
+    private void ifSizeLimitRemoveOldest() {
+        if (this.forecastCache.size() == this.cacheLimit) {
+            String oldestEntry = this.insertionOrder.get(0);
+            this.forecastCache.remove(oldestEntry);
+            this.insertionOrder.remove(0);
+        }
+    }
 
+    private boolean isInCache(String key) {
         return forecastCache.containsKey(key);
     }
 
     private String generateKey(Region region, Day day){
-
         return region.toString()+"_"+day.toString();
     }
 }
