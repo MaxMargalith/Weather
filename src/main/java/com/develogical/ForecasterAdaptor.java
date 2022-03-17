@@ -8,7 +8,6 @@ import com.weather.Region;
 public class ForecasterAdaptor implements ForecasterClient {
 
     private Forecaster forecaster;
-
     public ForecasterAdaptor() {
         this.forecaster = new Forecaster();
     }
